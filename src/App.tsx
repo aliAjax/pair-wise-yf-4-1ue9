@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Layout from '@/components/Layout'
 import RecordPage from '@/pages/RecordPage'
 import TimelinePage from '@/pages/TimelinePage'
+import PairPage from '@/pages/PairPage'
 import InspirePage from '@/pages/InspirePage'
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<RecordPage />} />
           <Route path="/timeline" element={<TimelinePage />} />
+          <Route path="/pairs" element={<PairPage />} />
           <Route path="/inspire" element={<InspirePage />} />
         </Route>
       </Routes>

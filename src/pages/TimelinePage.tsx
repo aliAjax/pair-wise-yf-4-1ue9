@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Route, X, Trash2, Clock, MapPin } from 'lucide-react'
+import { Search, Route, X, Trash2, Clock, MapPin, Hourglass, CheckCircle2, XCircle } from 'lucide-react'
 import { useSceneStore } from '@/store/useSceneStore'
 import {
   formatTimestamp,
@@ -8,7 +8,29 @@ import {
   getTreeIcon,
   getPedestrianIcon,
 } from '@/utils/sceneHelpers'
-import type { WindowScene } from '@/types'
+import type { WindowScene, PairStatus } from '@/types'
+
+function PairBadge({ status }: { status: PairStatus }) {
+  if (status === '已完成') {
+    return (
+      <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] text-emerald-300">
+        <CheckCircle2 className="w-2.5 h-2.5" />已配对
+      </span>
+    )
+  }
+  if (status === '待配对') {
+    return (
+      <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] text-amber-300">
+        <Hourglass className="w-2.5 h-2.5" />待配对
+      </span>
+    )
+  }
+  return (
+    <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-mist-500/15 px-1.5 py-0.5 text-[9px] text-mist-400">
+      <XCircle className="w-2.5 h-2.5" />已失效
+    </span>
+  )
+}
 
 export default function TimelinePage() {
   const { routeNames, selectedRoute, currentRouteScenes, selectRoute, loadAll, deleteScene } =
@@ -116,6 +138,7 @@ export default function TimelinePage() {
                       <span className="text-xs">{scene.routeName}</span>
                       <span className="mx-1 text-teal-700">·</span>
                       <span className="text-xs">{scene.seatDirection}侧</span>
+                      <PairBadge status={scene.pairStatus} />
                     </div>
                     {scene.note && (
                       <p className="text-xs text-mist-400 line-clamp-2">

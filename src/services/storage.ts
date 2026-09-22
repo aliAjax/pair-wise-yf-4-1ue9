@@ -1,4 +1,5 @@
 import type { WindowScene } from '@/types'
+import { normalize } from '@/services/pairing'
 
 const STORAGE_KEY = 'bus_window_scenes'
 
@@ -6,10 +7,16 @@ export function getAllScenes(): WindowScene[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
-    return JSON.parse(raw) as WindowScene[]
+    const parsed = JSON.parse(raw) as Partial<WindowScene>[]
+    return Array.isArray(parsed) ? parsed.map(normalize) : []
   } catch {
     return []
   }
+}
+
+/** 以配对引擎计算后的全量结果覆盖存储 */
+export function replaceAllScenes(scenes: WindowScene[]): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(scenes))
 }
 
 export function saveScene(scene: WindowScene): void {

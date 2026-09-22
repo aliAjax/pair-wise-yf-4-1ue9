@@ -1,13 +1,13 @@
 import { create } from 'zustand'
-import type { WindowScene, SceneFormData } from '@/types'
+import type { WindowScene, SceneFormData, PairOutcome } from '@/types'
 import {
   getAllScenes,
-  saveScene as storageSaveScene,
-  deleteScene as storageDeleteScene,
+  replaceAllScenes,
   getScenesByRoute,
   getAllRouteNames,
   getRandomScene,
 } from '@/services/storage'
+import { ingestScene, removeScene, sweepExpired } from '@/services/pairing'
 
 interface SceneState {
   scenes: WindowScene[]
@@ -17,13 +17,15 @@ interface SceneState {
   randomScene: WindowScene | null
 
   loadAll: () => void
-  saveScene: (data: SceneFormData) => void
+  saveScene: (data: SceneFormData) => PairOutcome
   deleteScene: (id: string) => void
   selectRoute: (routeName: string) => void
   refreshRandom: () => void
+  /** 扫描并固化超时的待配对记录（已失效但保留） */
+  sweepPairs: () => void
 }
 
-export const useSceneStore = create<SceneState>((set) => ({
+export const useSceneStore = create<SceneState>((set, get) => ({
   scenes: [],
   routeNames: [],
   currentRouteScenes: [],
@@ -31,9 +33,17 @@ export const useSceneStore = create<SceneState>((set) => ({
   randomScene: null,
 
   loadAll: () => {
-    const scenes = getAllScenes()
+    const stored = getAllScenes()
+    const swept = sweepExpired(stored)
+    if (swept !== stored) replaceAllScenes(swept)
     const routeNames = getAllRouteNames()
-    set({ scenes, routeNames })
+    set((state) => ({
+      scenes: swept,
+      routeNames,
+      currentRouteScenes: state.selectedRoute
+        ? getScenesByRoute(state.selectedRoute)
+        : state.currentRouteScenes,
+    }))
   },
 
   saveScene: (data: SceneFormData) => {
@@ -41,26 +51,34 @@ export const useSceneStore = create<SceneState>((set) => ({
       ...data,
       id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
+      pairStatus: '待配对',
+      pairId: null,
+      pairExpiresAt: null,
     }
-    storageSaveScene(scene)
-    const scenes = getAllScenes()
+    const { scenes: next, outcome } = ingestScene(get().scenes, scene)
+    replaceAllScenes(next)
     const routeNames = getAllRouteNames()
-    set((state) => {
-      const currentRouteScenes =
-        state.selectedRoute ? getScenesByRoute(state.selectedRoute) : []
-      return { scenes, routeNames, currentRouteScenes }
-    })
+    set((state) => ({
+      scenes: next,
+      routeNames,
+      currentRouteScenes: state.selectedRoute
+        ? getScenesByRoute(state.selectedRoute)
+        : [],
+    }))
+    return outcome
   },
 
   deleteScene: (id: string) => {
-    storageDeleteScene(id)
-    const scenes = getAllScenes()
+    const next = removeScene(get().scenes, id)
+    replaceAllScenes(next)
     const routeNames = getAllRouteNames()
-    set((state) => {
-      const currentRouteScenes =
-        state.selectedRoute ? getScenesByRoute(state.selectedRoute) : []
-      return { scenes, routeNames, currentRouteScenes }
-    })
+    set((state) => ({
+      scenes: next,
+      routeNames,
+      currentRouteScenes: state.selectedRoute
+        ? getScenesByRoute(state.selectedRoute)
+        : [],
+    }))
   },
 
   selectRoute: (routeName: string) => {
@@ -71,5 +89,17 @@ export const useSceneStore = create<SceneState>((set) => ({
   refreshRandom: () => {
     const randomScene = getRandomScene()
     set({ randomScene })
+  },
+
+  sweepPairs: () => {
+    const swept = sweepExpired(get().scenes)
+    if (swept === get().scenes) return
+    replaceAllScenes(swept)
+    set((state) => ({
+      scenes: swept,
+      currentRouteScenes: state.selectedRoute
+        ? getScenesByRoute(state.selectedRoute)
+        : state.currentRouteScenes,
+    }))
   },
 }))
