@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { WindowScene, SceneFormData } from '@/types'
+import type { WindowScene, SceneFormData, PairStatus } from '@/types'
 import {
   getAllScenes,
   saveScene as storageSaveScene,
@@ -8,6 +8,7 @@ import {
   getAllRouteNames,
   getRandomScene,
 } from '@/services/storage'
+import { usePairingStore } from '@/store/usePairingStore'
 
 interface SceneState {
   scenes: WindowScene[]
@@ -17,7 +18,7 @@ interface SceneState {
   randomScene: WindowScene | null
 
   loadAll: () => void
-  saveScene: (data: SceneFormData) => void
+  saveScene: (data: SceneFormData) => PairStatus
   deleteScene: (id: string) => void
   selectRoute: (routeName: string) => void
   refreshRandom: () => void
@@ -34,9 +35,11 @@ export const useSceneStore = create<SceneState>((set) => ({
     const scenes = getAllScenes()
     const routeNames = getAllRouteNames()
     set({ scenes, routeNames })
+    // 刷新后依据全部窗景校正配对状态，保持状态不变
+    usePairingStore.getState().loadPairings(scenes)
   },
 
-  saveScene: (data: SceneFormData) => {
+  saveScene: (data) => {
     const scene: WindowScene = {
       ...data,
       id: crypto.randomUUID(),
@@ -50,9 +53,10 @@ export const useSceneStore = create<SceneState>((set) => ({
         state.selectedRoute ? getScenesByRoute(state.selectedRoute) : []
       return { scenes, routeNames, currentRouteScenes }
     })
+    return usePairingStore.getState().admitScene(scene, scenes)
   },
 
-  deleteScene: (id: string) => {
+  deleteScene: (id) => {
     storageDeleteScene(id)
     const scenes = getAllScenes()
     const routeNames = getAllRouteNames()
@@ -61,6 +65,7 @@ export const useSceneStore = create<SceneState>((set) => ({
         state.selectedRoute ? getScenesByRoute(state.selectedRoute) : []
       return { scenes, routeNames, currentRouteScenes }
     })
+    usePairingStore.getState().sceneRemoved(id, scenes)
   },
 
   selectRoute: (routeName: string) => {

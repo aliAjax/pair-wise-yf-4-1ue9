@@ -1,6 +1,7 @@
-import type { WindowScene } from '@/types'
+import type { WindowScene, PairEntry } from '@/types'
 
 const STORAGE_KEY = 'bus_window_scenes'
+const PAIRS_KEY = 'bus_window_pairs'
 
 export function getAllScenes(): WindowScene[] {
   try {
@@ -39,4 +40,18 @@ export function getRandomScene(): WindowScene | null {
   const scenes = getAllScenes()
   if (scenes.length === 0) return null
   return scenes[Math.floor(Math.random() * scenes.length)]
+}
+
+export function getAllPairEntries(): PairEntry[] {
+  try {
+    const raw = localStorage.getItem(PAIRS_KEY)
+    if (!raw) return []
+    return JSON.parse(raw) as PairEntry[]
+  } catch {
+    return []
+  }
+}
+
+export function saveAllPairEntries(entries: PairEntry[]): void {
+  localStorage.setItem(PAIRS_KEY, JSON.stringify(entries))
 }

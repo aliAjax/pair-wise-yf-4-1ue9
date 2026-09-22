@@ -29,3 +29,16 @@ export interface SceneFormData {
   pedestrianStatus: PedestrianStatus
   note: string
 }
+
+export type PairStatus = 'pending' | 'completed' | 'expired'
+
+export interface PairEntry {
+  sceneId: string
+  partnerId: string | null
+  pairId: string | null
+  status: PairStatus
+  /** 进入当前“待配对”状态的时刻（ISO），20 分钟有效窗以此为起点 */
+  since: string
+  /** 退回待配对时重开有效窗的时刻；未发生过退回则为空 */
+  reopenedAt?: string
+}

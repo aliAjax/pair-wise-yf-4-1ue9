@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Bus, MapPin, Armchair, Clock, CloudSun, Signpost, TreePine, Users, FileText, Send } from 'lucide-react'
+import { Bus, MapPin, Armchair, Clock, CloudSun, Signpost, TreePine, Users, FileText, Send, ArrowLeftRight, Hourglass } from 'lucide-react'
 import { useSceneStore } from '@/store/useSceneStore'
 import { getWeatherIcon, getTreeIcon, getPedestrianIcon, formatTimestamp } from '@/utils/sceneHelpers'
-import type { SceneFormData, Weather, TreeDensity, PedestrianStatus, SeatDirection } from '@/types'
+import type { SceneFormData, Weather, TreeDensity, PedestrianStatus, SeatDirection, PairStatus } from '@/types'
 
 const WEATHERS: Weather[] = ['晴', '多云', '阴', '小雨', '大雨', '雪', '雾']
 const TREES: TreeDensity[] = ['稀疏', '适中', '茂密']
@@ -24,7 +24,7 @@ export default function RecordPage() {
   const loadAll = useSceneStore((s) => s.loadAll)
   const [form, setForm] = useState<SceneFormData>(initialForm)
   const [now, setNow] = useState(new Date())
-  const [showSuccess, setShowSuccess] = useState(false)
+  const [showSuccess, setShowSuccess] = useState<PairStatus | null>(null)
 
   useEffect(() => { loadAll() }, [loadAll])
 
@@ -38,21 +38,30 @@ export default function RecordPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    saveScene(form)
-    setShowSuccess(true)
+    const status = saveScene(form)
+    setShowSuccess(status)
     setTimeout(() => {
-      setShowSuccess(false)
+      setShowSuccess(null)
       setForm(initialForm)
-    }, 1500)
+    }, 1800)
   }
 
   return (
     <div className="relative min-h-screen bg-teal-950 p-4 pb-24">
       {showSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-          <div className="animate-bounce flex flex-col items-center gap-2 opacity-0" style={{ animation: 'fadeInUp 1.5s ease forwards' }}>
-            <Bus className="w-16 h-16 text-dusk-400" />
-            <span className="text-mist-100 font-serif text-lg">记录已保存</span>
+          <div className="flex flex-col items-center gap-2" style={{ animation: 'fadeInUp 1.8s ease forwards' }}>
+            {showSuccess === 'completed' ? (
+              <>
+                <ArrowLeftRight className="w-16 h-16 text-dusk-400" />
+                <span className="text-mist-100 font-serif text-lg">配对成功 · 对向记录已完成</span>
+              </>
+            ) : (
+              <>
+                <Hourglass className="w-16 h-16 text-dusk-400" />
+                <span className="text-mist-100 font-serif text-lg">已进入待配对 · 20 分钟内有效</span>
+              </>
+            )}
           </div>
           <style>{`@keyframes fadeInUp { 0% { opacity:0; transform:translateY(20px) } 40% { opacity:1; transform:translateY(0) } 100% { opacity:0; transform:translateY(-40px) } }`}</style>
         </div>
